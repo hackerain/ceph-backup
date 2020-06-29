@@ -24,7 +24,7 @@ class CephFullBackup(object):
     DIFF_BACKUP_SUFFIX = '.diff_from'
     COMPRESSED_BACKUP_SUFFIX = '.tar.gz'
 
-    def __init__(self, pool, images, backup_dest, conf_file, check_mode=False, compress_mode=False, window_size=7, window_unit='days'):
+    def __init__(self, pool, images, backup_dest, conf_file, check_mode=False, compress_mode=False, convert_to_qcow2=False, window_size=7, window_unit='days'):
         '''
         images: list of images to backup
         backup_dest: path where to write the backups
@@ -37,6 +37,7 @@ class CephFullBackup(object):
         self._backup_dest = backup_dest
         self._check_mode = check_mode
         self._compress_mode = compress_mode
+        self._convert_to_qcow2 = convert_to_qcow2
         # TODO: support also cardinal backup window instead of temporal one, snapshots unit
         self._window_size = window_size
         self._window_unit = window_unit
@@ -188,6 +189,9 @@ class CephFullBackup(object):
             # This is a full (non diff) export of the image or snapshot
             print "Exporting image {image} to {dest}".format(image=name, dest=dest)
             cmdlist.append('rbd export {pool}/{image} {dest}'.format(pool=self._pool, image=name, dest=dest))
+            if self._convert_to_qcow2:
+                cmdlist.append('qemu-img convert -O qcow2 {dest} {dest}.qcow2'.format(dest=dest))
+                cmdlist.append('mv {dest}.qcow2 {dest} -f'.format(dest=dest))
         else:
             # Exporting diffs from a base image or snapshot
             # Validate also the base
@@ -349,10 +353,11 @@ def main():
     parser.add_argument('-d', '--dest', help="Destination directory", required=True)
     parser.add_argument('-n', '--check', help="Check mode, show the commands, do not write a backup", action="store_true")
     parser.add_argument('-z', '--compress', help="Compress mode, it will compress each exported file and delete the original one", action="store_true")
+    parser.add_argument('-q', '--convert_to_qcow2', help="Convert the disk to qcow2 format", action="store_true")
     parser.add_argument('-c', '--ceph-conf', help="Path to ceph configuration file", type=str, default='/etc/ceph/ceph.conf')
     args = parser.parse_args()
 
-    cb = CephFullBackup(args.pool, args.images, args.dest, args.ceph_conf, args.check, args.compress)
+    cb = CephFullBackup(args.pool, args.images, args.dest, args.ceph_conf, args.check, args.compress, args.convert_to_qcow2)
     cb.full_backup()
 
 if __name__ == '__main__':

@@ -33,10 +33,11 @@ class Settings(object):
             conf_file = self.getsetting(section, 'ceph config')
             check_mode = bool(strtobool(self.getsetting(section, 'check mode')))
             compress_mode = bool(strtobool(self.getsetting(section, 'compress')))
+            convert_to_qcow2 = bool(strtobool(self.getsetting(section, 'convert to qcow2')))
             window_size = int(self.getsetting(section, 'window size'))
             window_unit = self.getsetting(section, 'window unit')
             backup_mode = self.getsetting(section, 'backup mode')
-            cb = CephFullBackup(section, images, backup_dest, conf_file, check_mode, compress_mode, window_size, window_unit)
+            cb = CephFullBackup(section, images, backup_dest, conf_file, check_mode, compress_mode, convert_to_qcow2, window_size, window_unit)
             if backup_mode == 'full':
                 print "Full ceph backup"
                 cb.print_overview()
